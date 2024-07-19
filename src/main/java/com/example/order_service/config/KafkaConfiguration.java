@@ -1,9 +1,5 @@
 package com.example.order_service.config;
 
-import com.example.order_service.dto.Order;
-import com.example.order_service.dto.OrderEvent;
-import com.example.order_service.dto.StatusEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -14,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,45 +23,40 @@ public class KafkaConfiguration {
     @Value("${app.kafka.kafkaMessageGroupId}")
     private String kafkaMessageGroupId;
 
-    // продуцирует сообщения
     @Bean
-    public ProducerFactory<String, OrderEvent> kafkaMessageProducerFactory(ObjectMapper objectMapper) {
+    public ProducerFactory<String, String> kafkaMessageProducerFactory() {
         Map<String, Object> config = new HashMap<>();
 
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        return new DefaultKafkaProducerFactory<>(config, new StringSerializer(), new JsonSerializer<>(objectMapper));
+        return new DefaultKafkaProducerFactory<>(config, new StringSerializer(), new StringSerializer());
     }
 
-    // отправитель сообщения
     @Bean
-    public KafkaTemplate<String, OrderEvent> kafkaTemplate(ProducerFactory<String, OrderEvent> kafkaMessageProducerFactory) {
+    public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> kafkaMessageProducerFactory) {
         return new KafkaTemplate<>(kafkaMessageProducerFactory);
     }
 
-    // читает сообщения
     @Bean
-    public ConsumerFactory<String, StatusEvent> kafkaMessageConsumerFactory(ObjectMapper objectMapper) {
+    public ConsumerFactory<String, String> kafkaMessageConsumerFactory() {
         Map<String, Object> config = new HashMap<>();
 
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaMessageGroupId);
         config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
 
-        return new DefaultKafkaConsumerFactory<>(config, new StringDeserializer(), new JsonDeserializer<>(objectMapper));
+        return new DefaultKafkaConsumerFactory<>(config, new StringDeserializer(), new StringDeserializer());
     }
 
-    // создает контейнеры, которые слушают Kafka
-    // слушает Kafka и обрабатывает сообщения
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, StatusEvent> kafkaMessageConcurrentKafkaListenerContainerFactory(
-            ConsumerFactory<String, StatusEvent> kafkaMessageConsumerFactory) {
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaMessageConcurrentKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> kafkaMessageConsumerFactory) {
 
-        ConcurrentKafkaListenerContainerFactory<String, StatusEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(kafkaMessageConsumerFactory);
 
         return factory;
